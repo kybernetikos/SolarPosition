@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Solar Positioning</title>
+    <script type="text/javascript" src="combined.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+
+
+    function checkSunriseSunset(year, month, day, hour, minute, second, timezone, latitude, longitude, rise, set) {
+        var sp = new solar.SolarPosition(
+                solar.JulianDay.fromValues(year, month, day, hour, minute, second, 0, timezone),
+                latitude, longitude,
+                undefined, timezone);
+        var result = sp.getSunRiseTransitSet();
+        console.log('Calculated', result);
+        if (result.sunriseLocalHr != rise) {
+            console.log("Incorrect value for sunrise", arguments, result.sunrise, "should have been", rise);
+        }
+        if (result.sunsetLocalHr != set) {
+            console.log("Incorrect value for sunset", arguments, result.sunset, "should have been", set);
+        }
+    }
+
+    checkSunriseSunset(2003, 10, 17, 12, 30, 30, -7, 39.742476, -105.1786, 6.2120646409899845, 17.338665536319922);
+    checkSunriseSunset(2005, 1, 1, 0, 0, 0, -7, 39.743, -105.178, 7.365363073855958, 16.787451551869452);
+
+</script>
+</body>
+</html>
