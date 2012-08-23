@@ -44,8 +44,12 @@ var Time = (function() {
 		};
 	};
 
+	Time.prototype.changeTimeZone = function(fromTzHr, toTzHr) {
+		return this.addHours(toTzHr - fromTzHr);
+	};
+
 	Time.prototype.valueOf = function() {
-		return this.dayFraction();
+		return this.dayFraction;
 	};
 
 	Time.fromValues = function(hour, minute, second, millisecond) {

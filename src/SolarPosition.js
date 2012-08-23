@@ -12,19 +12,11 @@ var SolarPosition = (function() {
 	var TERM_X0 = 0, TERM_X1 = 1, TERM_X2 = 2, TERM_X3 = 3, TERM_X4 = 4, TERM_X_COUNT = 5;
 	var TERM_PSI_A = 0, TERM_PSI_B = 1, TERM_EPS_C = 2, TERM_EPS_D = 3;
 	var SUN_TRANSIT = 0, SUN_RISE = 1, SUN_SET = 2, SUN_COUNT = 3;
-	var TERM_Y_COUNT = TERM_X_COUNT
+	var TERM_Y_COUNT = TERM_X_COUNT;
 
 	var l_subcount = [64, 34, 20, 7, 3, 1];
 	var b_subcount = [5, 2];
 	var r_subcount = [40, 10, 6, 2, 1];
-
-	function clone(obj) {
-		var result = {};
-		for (var key in obj) {
-			result[key] = obj[key];
-		}
-		return result;
-	}
 
 	function rad2deg(radians) {
 		return (180.0 / PI) * radians;
@@ -353,7 +345,7 @@ var SolarPosition = (function() {
 	function calculateGeocentricSunRightAscensionAndDeclination(input) {
 		var output = {};
 		var x = [];
-		var julianDay = input.jd;
+		var julianDay = input.julianDay;
 		output.jc = julianDay.century();
 		output.jde = julianDay.ephemerisDay(input.delta_t);
 		output.jce = julianDay.ephemerisCentury(input.delta_t);
@@ -385,13 +377,12 @@ var SolarPosition = (function() {
 	}
 
 	function validateInputs(input) {
-		if (!input.jd) throw new Error("No date present.");
+		if (!input.julianDay) throw new Error("No date present.");
 		if ((input.pressure < 0     ) || (input.pressure > 5000)) throw new Error("Pressure " + input.pressure + " outside range (0 to 5000).");
 		if ((input.temperature <= -273) || (input.temperature > 6000)) throw new Error("Temperature " + input.temperature + " outside range (-273 to 6000).");
 		if ((input.hour == 24 ) && (input.minute > 0    )) throw new Error("Minute is in the next day.");
 		if ((input.hour == 24 ) && (input.second > 0    )) throw new Error("Second is in the next day.");
 		if (abs(input.delta_t) > 8000) throw new Error("Delta T " + input.delta_t + " is larger than 8000.");
-		if (abs(input.timezone) > 12) throw new Erorr("Timezone " + input.timezone + " is larger than 12.");
 		if (abs(input.longitude) > 180) throw new Error("Longitude " + input.longitude + " is larger than 180.");
 		if (abs(input.latitude) > 90) throw new Error("Latitude " + input.latitude + " is larger than 90.");
 		if (input.elevation < -6500000) throw new Error("Elevation " + input.elevation + " is less than -6500000.");
@@ -413,19 +404,18 @@ var SolarPosition = (function() {
 		var alpha_prime = [], delta_prime = [], h_prime = [];
 		var h0_prime = -1 * (SUN_RADIUS + input.atmos_refract);
 
-		var sun_rts = clone(input);
-		sun_rts.jd = input.jd.startOfJulianDay();
-		var startOfDayData = calculateGeocentricSunRightAscensionAndDeclination(sun_rts);
+		var sun_rts = input.changeDay(input.julianDay.setTime(new Time(0)));
+		var startOfDayData = sun_rts.calculateGeocentricSunRightAscensionAndDeclination();
 		var nu = startOfDayData.nu;
 
 		sun_rts.delta_t = 0;
-		sun_rts.jd = sun_rts.jd.add(-1);
+		sun_rts.julianDay = sun_rts.julianDay.add(-1);
 
 		for (var i = 0; i < 3; i++) {
-			var tmpDayData = calculateGeocentricSunRightAscensionAndDeclination(sun_rts);
+			var tmpDayData = sun_rts.calculateGeocentricSunRightAscensionAndDeclination();
 			alpha[i] = tmpDayData.alpha;
 			delta[i] = tmpDayData.delta;
-			sun_rts.jd = sun_rts.jd.add(1);
+			sun_rts.julianDay = sun_rts.julianDay.add(1);
 		}
 
 		m_rts[SUN_TRANSIT] = approxSunTransitTime(alpha[1], input.longitude, nu);
@@ -441,34 +431,23 @@ var SolarPosition = (function() {
 				h_rts[i] = rtsSunAltitude(input.latitude, delta_prime[i], h_prime[i]);
 			}
 
-			output.suntransitHourAngle = h_rts[SUN_TRANSIT];
-			output.sunriseHourAngle = h_prime[SUN_RISE];
-			output.sunsetHourAngle = h_prime[SUN_SET];
+			output.sunTransitHourAngle = h_rts[SUN_TRANSIT];
+			output.sunRiseHourAngle = h_prime[SUN_RISE];
+			output.sunSetHourAngle = h_prime[SUN_SET];
 
-			output.transitUTC = new Time(m_rts[SUN_TRANSIT] - h_prime[SUN_TRANSIT] / 360.0);
-			output.riseUTC = new Time(sunRiseAndSet(m_rts, h_rts, delta_prime, input.latitude, h_prime, h0_prime, SUN_RISE));
-			output.setUTC = new Time(sunRiseAndSet(m_rts, h_rts, delta_prime, input.latitude, h_prime, h0_prime, SUN_SET));
+			output.sunTransitUTC = new Time(m_rts[SUN_TRANSIT] - h_prime[SUN_TRANSIT] / 360.0);
+			output.sunRiseUTC = new Time(sunRiseAndSet(m_rts, h_rts, delta_prime, input.latitude, h_prime, h0_prime, SUN_RISE));
+			output.sunSetUTC = new Time(sunRiseAndSet(m_rts, h_rts, delta_prime, input.latitude, h_prime, h0_prime, SUN_SET));
 
-			output.transitLocal = output.transitUTC.addHours(input.timezone || 0);
-			output.riseLocal = output.riseUTC.addHours(input.timezone || 0);
-			output.setLocal = output.setUTC.addHours(input.timezone || 0);
-
-			output.suntransitLocalHr = output.transitLocal.toHours();
-			output.sunriseLocalHr =	output.riseLocal.toHours();
-			output.sunsetLocalHr = output.setLocal.toHours();
-
-			output.suntransitLocalStr = output.transitLocal.toString();
-			output.sunriseLocalStr =	output.riseLocal.toString();
-			output.sunsetLocalStr = output.setLocal.toString();
 		} else {
-			output.srha = output.ssha = output.sta = output.suntransit = output.sunrise = output.sunset = -99999;
+			return null;
 		}
 		return output;
 	}
 
 	function calculateSunPosition(input) {
 		validateInputs(input);
-		var intermediate = calculateGeocentricSunRightAscensionAndDeclination(input);
+		var intermediate = input.calculateGeocentricSunRightAscensionAndDeclination();
 		var output = {};
 
 		// limitDegrees ? document suggests h should be limited
@@ -866,12 +845,11 @@ var SolarPosition = (function() {
 		[-3, 0, 0, 0]
 	];
 
-	function SolarPosition(julianDay, latitude, longitude, delta_t, desiredTimeZone, elevation, pressure, temperature, slope, azm_rotation, atmos_refract) {
-		this.jd = julianDay || JulianDay.fromDate();
+	function SolarPosition(julianDay, latitude, longitude, delta_t, elevation, pressure, temperature, slope, azm_rotation, atmos_refract) {
+		this.julianDay = julianDay || JulianDay.fromDate();
 		this.latitude = latitude || 0;
 		this.longitude = longitude || 0;
 		this.delta_t = delta_t || 64.797;
-		this.timezone = desiredTimeZone || 0;
 		this.elevation = elevation || 1829;
 		this.pressure = pressure || 835;
 		this.temperature = temperature || 10;
@@ -886,6 +864,14 @@ var SolarPosition = (function() {
 
 	SolarPosition.prototype.getSunPosition = function() {
 		return calculateSunPosition(this);
+	};
+
+	SolarPosition.prototype.calculateGeocentricSunRightAscensionAndDeclination = function() {
+		return calculateGeocentricSunRightAscensionAndDeclination(this);
+	};
+
+	SolarPosition.prototype.changeDay = function(newJulianDay) {
+		return new SolarPosition(newJulianDay, this.latitude, this.longitude, this.delta_t, this.elevation, this.pressure, this.temperature, this.slope, this.azm_rotation, this.atmos_refract);
 	};
 
 	return SolarPosition;

@@ -3,6 +3,7 @@ var JulianDay = (function() {
 	var floor = Math.floor;
 
 	function JulianDay(day) {
+		if (typeof day == 'string' && day.substring(0, 2) == "JD") day = Number(day.substring(2));
 		this.day = day;
 	}
 
@@ -26,12 +27,16 @@ var JulianDay = (function() {
 		return this.day;
 	};
 
+	JulianDay.prototype.getTime = function() {
+		return new Time(this.day);
+	};
+
 	JulianDay.prototype.toString = function() {
 		return "JD"+this.day;
 	};
 
-	JulianDay.prototype.startOfJulianDay = function() {
-		return new JulianDay(floor(this.day - 0.5) + 0.5);
+	JulianDay.prototype.setTime = function(time) {
+		return new JulianDay(floor(this.day - 0.5) + 0.5 + time.valueOf());
 	};
 
 	JulianDay.prototype.add = function(days) {

@@ -2,34 +2,99 @@
 <html lang="en">
 <head>
     <title>Solar Positioning</title>
-    <script type="text/javascript" src="combined.js"></script>
+    <script type="text/javascript" src="src/Time.js"></script>
+    <script type="text/javascript" src="src/JulianDay.js"></script>
+    <script type="text/javascript" src="src/SolarPosition.js"></script>
+    <script type="text/javascript">
+        var solar = {
+            JulianDay: JulianDay,
+            Time: Time,
+            SolarPosition: SolarPosition
+        };
+    </script>
+    <style>
+
+        body {
+            font-family: Corbel, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", "Bitstream Vera Sans", "Liberation Sans", Verdana, "Verdana Ref", sans-serif;
+        }
+
+        .label {
+            display: inline-block;
+            width: 7em;
+        }
+
+        .entry {
+        }
+
+    </style>
 </head>
 <body>
-
-<p>This library is based on the calculation and code published <a href="http://www.nrel.gov/midc/spa/">here</a>.</p>
-<p>It calculates the sun rise, sun set and sun transit time.</p>
-
+<h1>SolarPosition</h1>
+<p>A javascript library to calculate solar position and sun rise, set and transit times.
+    It is based on the calculation and code published by National Renewable Energy Laboratory <a href="http://www.nrel.gov/midc/spa/">here</a>.
+</p>
 
 <script type="text/javascript">
 
+    var formElement = document.createElement('div');
+    var resultElement = document.createElement('pre');
 
-    function checkSunriseSunset(year, month, day, hour, minute, second, timezone, latitude, longitude, rise, set) {
-        var sp = new solar.SolarPosition(
-                solar.JulianDay.fromValues(year, month, day, hour, minute, second, 0, timezone),
-                latitude, longitude,
-                undefined, timezone);
-        var result = sp.getSunRiseTransitSet();
-        console.log('Calculated', result);
-        if (result.sunriseLocalHr != rise) {
-            console.log("Incorrect value for sunrise", arguments, result.sunrise, "should have been", rise);
-        }
-        if (result.sunsetLocalHr != set) {
-            console.log("Incorrect value for sunset", arguments, result.sunset, "should have been", set);
+    var form = {};
+    // just using this to get the defaults:
+    var sp = new solar.SolarPosition();
+    for (var key in sp) {
+        if (sp.hasOwnProperty(key)) {
+            var label  = document.createElement('span');
+            label.innerHTML = key;
+            label.className = "label";
+            var val = document.createElement('input');
+            val.className = 'entry';
+            val.value = sp[key];
+            form[key] = val;
+            formElement.appendChild(label);
+            formElement.appendChild(val);
+            formElement.appendChild(document.createElement('br'));
         }
     }
+    navigator.geolocation.getCurrentPosition(function (position) {
+        form.latitude.value = position.coords.latitude;
+        form.longitude.value = position.coords.longitude;
+    });
 
-    checkSunriseSunset(2003, 10, 17, 12, 30, 30, -7, 39.742476, -105.1786, 6.2120646409899845, 17.338665536319922);
-    checkSunriseSunset(2005, 1, 1, 0, 0, 0, -7, 39.743, -105.178, 7.365363073855958, 16.787451551869452);
+    formElement.appendChild(document.createTextNode("Local Timezone "));
+    var localTimeZone = document.createElement('input');
+    localTimeZone.style.width = "2em";
+    localTimeZone.value = (new Date()).getTimezoneOffset() / -60;
+    formElement.appendChild(localTimeZone);
+
+    var calcButton = document.createElement('button');
+    calcButton.innerHTML = "Calculate";
+
+    calcButton.onclick = function() {
+        // Actually do the calculation.
+        var sp = new solar.SolarPosition(
+                new JulianDay(form.julianDay.value),
+                Number(form.latitude.value), Number(form.longitude.value),
+                Number(form.delta_t.value), Number(form.elevation.value),
+                Number(form.pressure.value), Number(form.temperature.value),
+                Number(form.slope.value), Number(form.azm_rotation.value),
+                Number(form.atmos_refract.value)
+        );
+        lastInput = sp;
+        var results = sp.getSunRiseTransitSet();
+        lastResult = results;
+        var tzOffsetHr = Number(localTimeZone.value);
+
+        resultElement.innerHTML =
+            "Rise : "+results.sunRiseUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n" +
+            "Set : "+results.sunSetUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n";
+    };
+
+    formElement.appendChild(calcButton);
+
+    document.body.appendChild(formElement);
+    document.body.appendChild(resultElement);
+
 
 </script>
 </body>
