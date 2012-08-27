@@ -1,18 +1,21 @@
 var TYPE_SIZES = {
+	Byte: 1,
 	Int8: 1,
 	Uint8: 1,
 	Int16: 2,
 	Uint16: 2,
 	Int32: 4,
+	Int: 4,
 	Uint32: 4,
 	Float32: 4,
+	Number: 8,
 	Float64: 8
 };
 
 function Buffer(bytelen) {
 	this.buffer = new ArrayBuffer(bytelen || 100);
 	this.view = new DataView(this.buffer);
-	this.currentPos = 0;
+	this.position = 0;
 	this.lastPos = 0;
 }
 
@@ -43,28 +46,39 @@ Buffer.prototype.write = function(type, val) {
 };
 
 Buffer.prototype.writeArray = function(type, values) {
-	var newLastPos = Math.max(this.lastPos, this.currentPos + TYPE_SIZES[type] * values.length);
+	var newLastPos = Math.max(this.lastPos, this.position + TYPE_SIZES[type] * values.length);
 	if (newLastPos > this.buffer.byteLength) {
 		this.resize(Math.ceil(newLastPos * 1.5));
 	}
 	for (var i = 0; i < values.length; ++i) {
-		this.view["set"+type](this.currentPos, values[i]);
-		this.currentPos = this.currentPos + TYPE_SIZES[type];
+		this.view["set"+type](this.position, values[i]);
+		this.position = this.position + TYPE_SIZES[type];
 	}
 	this.lastPos = newLastPos;
 	return TYPE_SIZES[type] * values.length;
 };
 
-Buffer.prototype.seek = function(bytePosition) {
+Buffer.prototype.seek = function(byteDif) {
+	return this.seekTo(this.position + byteDif);
+};
+
+Buffer.prototype.seekTo = function(bytePosition) {
+	var oldPosition = position;
 	bytePosition = bytePosition || 0;
 	if (bytePosition < 0) bytePosition = 0;
-	this.currentPos = bytePosition;
-	if (this.currentPos > this.lastPos) {
-		this.lastPos = this.currentPos;
+	this.position = bytePosition;
+	if (this.position > this.lastPos) {
+		this.lastPos = this.position;
 		if (this.lastPos > this.buffer.byteLength) {
 			this.resize(Math.ceil(this.lastPos * 1.5));
 		}
 	}
+	return oldPosition;
+};
+
+Buffer.prototype.skip = function(type, num) {
+	num = num || 1;
+	return this.seek(TYPE_SIZES[type] * num);
 };
 
 Buffer.prototype.read = function(type) {
@@ -72,14 +86,14 @@ Buffer.prototype.read = function(type) {
 };
 
 Buffer.prototype.readArray = function(type, number) {
-	var newLastPos = Math.max(this.lastPos, this.currentPos + TYPE_SIZES[type] * number);
+	var newLastPos = Math.max(this.lastPos, this.position + TYPE_SIZES[type] * number);
 	if (newLastPos > this.buffer.byteLength) {
 		this.resize(Math.ceil(newLastPos * 1.5));
 	}
 	var result = [];
 	for (var i = 0; i < number; ++ i) {
-		result[i] = this.view["get"+type](this.currentPos);
-		this.currentPos = this.currentPos + TYPE_SIZES[type];
+		result[i] = this.view["get"+type](this.position);
+		this.position = this.position + TYPE_SIZES[type];
 	}
 	this.lastPos = newLastPos;
 	return result;
@@ -112,7 +126,7 @@ Buffer.prototype.readInt = function() {
 Bits = {
 	slice: function(value, start, end) {
 		var len = end - start;
-		var mask = Math.pow(2, len) - 1;
+		var mask = (1 << len) - 1;
 		return (value >> start) & mask;
 	}
 };
@@ -182,12 +196,12 @@ x.write("Int8", 10, 14, 15);
 x.writeNumber(1.5232);
 var len = x.writeString("Hello € world");
 
-x.seek(1);
+x.seekTo(1);
 console.log(x.readArray("Int8", 2));
 console.log(x.readNumber());
 console.log(x.readString(len));
 
-x.seek(0);
+x.seekTo(0);
 console.log(x.read("Int8"));
 
 console.log(UTF8.toBytes(8364));
