@@ -63,7 +63,7 @@ Buffer.prototype.seek = function(byteDif) {
 };
 
 Buffer.prototype.seekTo = function(bytePosition) {
-	var oldPosition = position;
+	var oldPosition = this.position;
 	bytePosition = bytePosition || 0;
 	if (bytePosition < 0) bytePosition = 0;
 	this.position = bytePosition;
@@ -210,6 +210,7 @@ console.log(UTF8.fromBytes([226, 130, 172]));
 console.log(UTF8.encode("boo €"));
 console.log(UTF8.decode(UTF8.encode("boo €")));
 
+console.log(UTF8.encode("Hello € world"));
 console.log(UTF16.encode("Hello € world"));
 console.log(UTF16.decode(UTF16.encode("Hello € world")));
 
