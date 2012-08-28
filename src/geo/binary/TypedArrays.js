@@ -12,11 +12,14 @@ var TYPE_SIZES = {
 	Float64: 8
 };
 
+
+
 function Buffer(bytelen) {
 	this.buffer = new ArrayBuffer(bytelen || 100);
 	this.view = new DataView(this.buffer);
 	this.position = 0;
 	this.lastPos = 0;
+	this.nextId = 0;
 }
 
 Buffer.prototype.resize = function(newBufferSize) {
@@ -122,7 +125,58 @@ Buffer.prototype.writeInt = function(num) {
 Buffer.prototype.readInt = function() {
 	return this.read("Int32");
 };
+/*
+var CODE_TYPE = ["Uint8", "Int8", "Int16", "Uint16", "Int32", "Uint32", "Float32", "Float64", "String"];
+var TYPE_CODE = {
+	Byte: 0,
+	Int8: 1,
+	Uint8: 0,
+	Int16: 2,
+	Uint16: 3,
+	Int32: 4,
+	Int: 4,
+	Uint32: 5,
+	Float32: 6,
+	Number: 7,
+	Float64: 7,
+	String: 8,
+	Boolean: 9,
+	Array: 10,
+	Object: 11
+};
 
+Buffer.prototype.serialise = function(input) {
+	if (typeof input == 'number') {
+		this.write("Uint8", TYPE_CODE["Number"]);
+		this.writeNumber(input);
+	} else if (typeof input == 'string') {
+		this.write("Uint8", TYPE_CODE["String"]);
+		var pos = this.skip("Uint16");
+		var byteCount = this.writeString(input);
+		var end = this.seekTo(pos);
+		this.write("Uint16", byteCount);
+		this.seekTo(end);
+	} else if (typeof input == 'boolean') {
+		this.write("Uint8", TYPE_CODE["Boolean"]);
+		this.write("Uint8", input ? 1 : 0);
+	} else if (typeof input == 'function') {
+		throw new Error('Cannot serialise functions.');
+	} else if (input instanceof Array) {
+		this.write("Uint8", TYPE_CODE["Array"]);
+		this.write("Uint32", input.length);
+		for (var i = 0; i < input.length; ++i) {
+			this.serialise(input[i]);
+		}
+	} else {
+		this.write("Uint8", TYPE_CODE["Object"]);
+		var byteSizePos = this.skip("Uint32");
+		input.___serialise_id = this.nextId++;
+		for (var key in input) {
+
+		}
+	}
+};
+*/
 Bits = {
 	slice: function(value, start, end) {
 		var len = end - start;

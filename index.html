@@ -1,7 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <title>Solar Positioning</title>
+
+    <script type="text/javascript" src="lib/codemirror-compressed.js"></script>
+    <link rel="stylesheet" href="lib/CodeMirror.css">
+
     <script type="text/javascript" src="src/Time.js"></script>
     <script type="text/javascript" src="src/JulianDay.js"></script>
     <script type="text/javascript" src="src/SolarPosition.js"></script>
@@ -16,6 +20,14 @@
 
         body {
             font-family: Corbel, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", "Bitstream Vera Sans", "Liberation Sans", Verdana, "Verdana Ref", sans-serif;
+            margin-left: 60px;
+        }
+
+        h1 {
+            margin-left: -30px;
+        }
+        h2 {
+            margin-left: -15px;
         }
 
         .label {
@@ -25,17 +37,37 @@
 
         .entry {
         }
-
+        .CodeMirror {
+            margin-left: 90px;
+            background-color: #ffc;
+            border: 2px solid #775;
+        }
+        .CodeMirror-scroll {
+            height: auto; overflow: visible;
+        }
     </style>
+    <script type="text/javascript">
+        function displayCode(element) {
+            var editor = CodeMirror(function(elem) {
+                element.parentNode.replaceChild(elem, element);
+            }, {
+                value: element.innerHTML,
+                mode:  "javascript",
+                readOnly: "true"
+            });
+        }
+    </script>
 </head>
 <body>
 <h1>SolarPosition</h1>
 <p>A javascript library to calculate solar position and sun rise, set and transit times.
-    It is based on the calculation and code published by National Renewable Energy Laboratory <a href="http://www.nrel.gov/midc/spa/">here</a>.
+    It is based on the calculation and code published by National Renewable Energy Laboratory <a href="http://www.nrel.gov/midc/spa/">here</a>,
+    and should be very accurate.
 </p>
+<p>The code is available on GitHub <a href="https://github.com/kybernetikos/SolarPosition">here</a>.</p>
 
+<h2>The Calculation</h2>
 <script type="text/javascript">
-
     var formElement = document.createElement('div');
     var resultElement = document.createElement('pre');
 
@@ -86,16 +118,65 @@
         var tzOffsetHr = Number(localTimeZone.value);
 
         resultElement.innerHTML =
-            "Rise : "+results.sunRiseUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n" +
-            "Set : "+results.sunSetUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n";
+                "Rise : "+results.sunRiseUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n" +
+                "Transit : "+results.sunTransitUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n" +
+                "Set : "+results.sunSetUTC.changeTimeZone(0, tzOffsetHr).toString()+"\n";
     };
 
     formElement.appendChild(calcButton);
 
     document.body.appendChild(formElement);
     document.body.appendChild(resultElement);
+</script>
 
+<h2>JulianDay</h2>
 
+<p>The part of this code that calculates Julian days can be used separately.  Julian Days are a date format commonly used
+    in astronomy.  They count the number of days since noon, January 1st, 4713 BC. Time periods less than a day can be
+    represented as fractional days.</p>
+
+<p>There are four ways to create a JulianDay object.
+    <ol>    <li>You can directly instantiate one with the Julian Day number, e.g. <tt>var jd = new JulianDate(2456168.2)</tt>.</li>
+            <li>You can convert a standard javascript date to a Julian Day, e.g. <tt>var jd = JulianDate.fromDate(new Date())</tt></li>
+            <li>You can create one based on the individual components, e.g. <tt>var jd = JulianDate.fromValues(year, month, day, hour, minute, second, millisecond, tz)</tt></li>
+            <li>You can create one by copying another date and modifying it, e.g. <tt>var jd1 = jd.add(0.5)</tt></li>
+    </ol>
+    Here's an example:
+</p>
+<pre id="julianday_code">
+var jd = JulianDate.fromValues(2012, 1, 1, 13, 20, 05, 988);
+console.log(jd.ephemerisDay());
+console.log(jd.ephemerisCentury());
+console.log(jd.ephemerisMillennium());
+
+var date = jd.toDate();</pre>
+<script type="text/javascript">
+    displayCode(document.getElementById('julianday_code'));
+</script>
+
+<h2>Time</h2>
+<p>More ways of manipulating the time are available with the Time javascript class.  Internally, Time instances store
+the time as fractions of a day.</p>
+<p>They can be created
+    <ol><li>directly from a number with the time in fractions of a day.  The integral part of the time is ignored. <tt>var time = new Time(5.432)</tt></li>
+        <li>from a javascript Date. <tt>var time = Time.fromDate(new Date())</tt></li>
+        <li>from the values for hours, minutes, seconds and milliseconds. <tt>var time = Time.fromValues(12, 30, 10, 992)</tt>. They can also be created from a
+        datastructure containing these values.</li>
+        <li>by copying and modifying another time, e.g. <tt>var time1 = time.addHours(2.5)</tt> there is also a method for changing the timezone of a Time <tt>changeTimeZone</tt> which uses addHours.</li>
+    </ol>
+</p>
+
+<h2>SolarPosition</h2>
+<p>To actually perform the calculation, create a <tt>SolarPosition</tt> object providing as many of the parameters as you can.</p>
+<pre id="solarPosition_code">
+var julianDay = JulianDate.fromValues(2012, 1, 1, 13, 20, 05, 988);
+var sp = new SolarPosition(julianDay, latitude, longitude, delta_t, elevation, pressure, temperature, slope, azm_rotation, atmos_refract);
+console.log(sp.getSunRiseTransitSet());
+console.log(sp.getSunPosition());
+console.log(sp.calculateGeocentricSunRightAscensionAndDeclination());
+</pre>
+<script type="text/javascript">
+    displayCode(document.getElementById('solarPosition_code'));
 </script>
 </body>
 </html>
