@@ -169,7 +169,7 @@ the time as fractions of a day.</p>
 <h2>SolarPosition</h2>
 <p>To actually perform the calculation, create a <tt>SolarPosition</tt> object providing as many of the parameters as you can.</p>
 <pre id="solarPosition_code">
-var julianDay = JulianDate.fromValues(2012, 1, 1, 13, 20, 05, 988);
+var julianDay = JulianDay.fromValues(2012, 1, 1, 13, 20, 05, 988);
 var sp = new SolarPosition(julianDay, latitude, longitude, delta_t, elevation, pressure, temperature, slope, azm_rotation, atmos_refract);
 console.log(sp.getSunRiseTransitSet());
 console.log(sp.getSunPosition());
