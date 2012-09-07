@@ -145,9 +145,9 @@
 </p>
 <pre id="julianday_code">
 var jd = JulianDay.fromValues(2012, 1, 1, 13, 20, 05, 988);
-console.log(jd.ephemerisDay());
-console.log(jd.ephemerisCentury());
-console.log(jd.ephemerisMillennium());
+console.log(jd.ephemerisDay(60));
+console.log(jd.ephemerisCentury(60));
+console.log(jd.ephemerisMillennium(60));
 
 var date = jd.toDate();</pre>
 <script type="text/javascript">
